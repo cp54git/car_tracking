@@ -1,17 +1,15 @@
-//-1 - file error
-//-2 - malloc error
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-int searchName(FILE *in, char *prompt);//поиск prompt имени в файле in
-char **mapPrompt(char *in);//разделение введенной строки на массивы char* по '_'
+int searchName(FILE *in, char *prompt);//find name prompt in file in
+char **mapPrompt(char *in);//split in in arrays of char* by '_'
 void clearBuff(char *in);
-void indexData();//создание index-файлов 
-void switchDates(int k);//смена времени во всех файлах директории на k часов вперед
-void mapFileSystem();//создание дерева директорий
-void formStatFile();//создания stat-файла
+void indexData();//create index-files 
+void switchDates(int k);//change time k seconds forward
+void mapFileSystem();//create directory tree
+void formStatFile();//create stat-file
 
 void indexData(){
 	char *prompt0, *prompt1, *cmd;
@@ -19,17 +17,16 @@ void indexData(){
 	FILE *indexIMEI;
 	FILE *indexDate;
 	FILE *indexTime;
-	
 	prompt0 = malloc(60*sizeof(char));
 	prompt1 = malloc(60*sizeof(char));
 	cmd = malloc(60*sizeof(char));
-	system("ls ./result/ > tmp");
+	system("ls ./data/ > tmp");
 	tmp1 = fopen("tmp", "r");
 	indexIMEI = fopen("indexIMEI.txt", "w");
 	indexDate = fopen("indexDate.txt", "w");
 	indexTime = fopen("indexTime.txt", "w");
 	while(fscanf(tmp1, "%s", prompt0) == 1){
-		fprintf(indexIMEI, "./result/%s\n", prompt0);
+		fprintf(indexIMEI, "./data/%s\n", prompt0);
 	}
 	clearBuff(prompt0);
 	clearBuff(prompt1);
@@ -37,9 +34,7 @@ void indexData(){
 	fclose(indexIMEI);
 	indexIMEI = fopen("indexIMEI.txt", "r");
 	while(fscanf(indexIMEI, "%s", prompt0) == 1){
-		strcat(cmd, "ls ");
-		strcat(cmd, prompt0);
-		strcat(cmd, " > tmp");
+		sprintf(cmd, "ls %s > tmp", prompt0);
 		system(cmd);
 		clearBuff(cmd);
 		tmp1 = fopen("tmp", "r");
@@ -55,9 +50,7 @@ void indexData(){
 	indexDate = fopen("indexDate.txt", "r");
 	fclose(indexIMEI);
 	while(fscanf(indexDate, "%s", prompt0) == 1){
-		strcat(cmd, "ls ");
-		strcat(cmd, prompt0);
-		strcat(cmd, " > tmp");
+		sprintf(cmd, "ls %s > tmp", prompt0);
 		system(cmd);
 		clearBuff(cmd);
 		tmp1 = fopen("tmp", "r");
@@ -119,26 +112,26 @@ void switchDates(int k){
 	char* times;
 	char* tmp = malloc(sizeof(char)*5);
 	char* filename = malloc(sizeof(char)*32);
-	char* string = malloc(sizeof(char)*64);
+	char* nfilename = malloc(sizeof(char)*32);
+	char* string = malloc(sizeof(char)*128);
 	char* dayFinStr = malloc(sizeof(char)*2);
 	char* monFinStr = malloc(sizeof(char)*2);
 	char* yearFinStr = malloc(sizeof(char)*2);
 	char* hourFinStr = malloc(sizeof(char)*2);
 	char* minFinStr = malloc(sizeof(char)*2);
 	char* secFinStr = malloc(sizeof(char)*2);
-	char **prompt;
-	FILE *tmpf, *names;
-	system("ls ./ > tmp");
+	char** prompt;
+	FILE* tmpf, *names;
+	system("ls ./data > tmp");
 	names = fopen("tmp", "r");
+	printf("creating index files...");
 	while(fscanf(names, "%s", filename) == 1){
 		if(strstr(filename, ".txt") == NULL || strcmp(filename, "indexIMEI.txt") == 0 || strcmp(filename, "indexDate.txt") == 0 || strcmp(filename, "indexTime.txt") == 0) continue;
-		if(strstr(filename, "err.txt") != NULL){
-			//do sth with time&date
-			continue;
-		}
 		date = calloc(0, sizeof(char)*16);
 		times = calloc(0, sizeof(char)*16);
-		tmpf = fopen(filename, "r");
+		clearBuff(nfilename);
+		sprintf(nfilename, "./data/%s", filename);
+		tmpf = fopen(nfilename, "r");
 		fscanf(tmpf, "%s", string);
 		prompt = mapPrompt(string);
 		//prompt[0] - IMEI, prompt[1] - date, prompt[2] - time, prompt[3] - latitude, prompt[4] - longitude
@@ -199,7 +192,7 @@ void switchDates(int k){
 			sprintf(secFinStr, "%d", wri -> tm_sec);
 		}
 		fclose(tmpf);
-		tmpf = fopen(filename, "w");
+		tmpf = fopen(nfilename, "w");
 		fprintf(tmpf, "%s_%s.%s.%s_%s:%s:%s_%s_%s\n", prompt[0], dayFinStr, monFinStr, yearFinStr, hourFinStr, minFinStr, secFinStr, prompt[3], prompt[4]);
 		fclose(tmpf);
 		free(prompt[0]);
@@ -209,6 +202,7 @@ void switchDates(int k){
 		free(prompt[4]);
 		free(prompt);
 	}
+	free(nfilename);
 	free(timer);
 	free(tmp);
 	free(filename);
@@ -231,42 +225,27 @@ void clearBuff(char *in){
 }
 
 void mapFileSystem(){
-	FILE *names;//names - file with names in directory
-	FILE *data;//data - current file with a prompt
-	FILE *tmp0; //tmp file for veryfing existance
-	FILE *tmp1;
-	char *filename, *prompt, **tmp, *cmd;//filename - string for opening the current file, prompt - data from <filename>
-	system("ls -t ./ > tmp");
+	FILE* names;//names - file with names in directory
+	FILE* data;//data - current file with a prompt
+	FILE* tmp0; //tmp file for veryfing existance
+	FILE* tmp1;
+	char* filename, *prompt, **tmp, *cmd, *nfilename;//filename - string for opening the current file, prompt - data from <filename>
+	system("ls -t ./data > tmp");
 	names = fopen("tmp", "r");
 	prompt = malloc(128*sizeof(char));
 	cmd = malloc(64*sizeof(char));
-	printf("created tmp:\n");
-	printf("--------------------------------------\n");
+	//printf("created tmp:\n");
+	printf("########################################\n");
 	while(fscanf(names, "%s", prompt) == 1){
 		printf("%s\n", prompt);
 	}
-	printf("--------------------------------------\n");
+	printf("########################################\n");
 	fclose(names);
 	names = fopen("tmp", "r");
 	filename = malloc(32*sizeof(char));
+	nfilename = malloc(32*sizeof(char));
 	while(fscanf(names, "%s", filename) == 1){
 		if(strstr(filename, ".txt") == NULL) continue;
-		if(strstr(filename, "err.txt") != NULL){
-			printf("error file detected\n");
-			data = fopen(filename, "r");
-			fscanf(data, "%s", prompt);
-			tmp = mapPrompt(prompt);
-			//tmp:[0] - ERROR; [1] - SAT(DATA); [2] - DATE&TIME; [3] - IMEI, [4] - empty;
-			//printf("%s\n%s\n%s\n%s\n%s\n", tmp[0], tmp[1], tmp[2], tmp[3], tmp[4]);
-			if(strcmp(tmp[1], "SAT") == 0){
-				printf("GPS_ERROR_SAT detected at %s at device #%s\n", tmp[2], tmp[3]);
-			}
-			if(strcmp(tmp[1], "DATA") == 0){
-				printf("GPS_ERROR_DATA detected at %s at device #%s\n", tmp[2], tmp[3]);
-			}
-			printf("--------------------------------------\n");
-			continue;
-		}
 		if(strcmp(filename, "indexIMEI.txt") == 0){
 			system("rm ./indexIMEI.txt");
 			continue;
@@ -279,62 +258,51 @@ void mapFileSystem(){
 			system("rm ./indexTime.txt");
 			continue;
 		}
-		printf("checking: %s\n", filename);
-		data = fopen(filename, "r");
+		printf("parsing: %s\n", filename);
+		clearBuff(nfilename);
+		sprintf(nfilename, "./data/%s", filename);
+		//printf("%s\n", nfilename);
+		data = fopen(nfilename, "r");
 		fscanf(data, "%s", prompt);
 		tmp = mapPrompt(prompt);
 		//tmp now has all the info([0] - IMEI, [1] - date, [2] - time, [3] - latitude, [4] - longtitude)
 		//now searching for IMEI directory 
-		system("ls ./result > tmp0");
+		system("ls ./data > tmp0");
 		tmp0 = fopen("tmp0", "r");
-		printf("created tmp0\n");
+		//printf("created tmp0\n");
 		if(!searchName(tmp0, tmp[0])){
 			clearBuff(cmd);
-			printf("could not find IMEI directory, creating it\n");
-			strcat(cmd, "mkdir ./result/");
-			strcat(cmd, tmp[0]);
-			printf("formed: %s \n", cmd);
+			printf("could not find IMEI directory, creating ");
+			sprintf(cmd, "mkdir ./data/%s", tmp[0]);
+			printf("./data/%s\n", tmp[0]);
 			system(cmd);
 		}
 		else{
 			printf("IMEI directory found!\n");
 		}
 		clearBuff(cmd);
-		strcat(cmd, "ls ./result/");
-		strcat(cmd, tmp[0]);
-		strcat(cmd, " > ./result/tmp1");
+		sprintf(cmd, "ls ./data/%s > ./data/tmp1", tmp[0]);
 		system(cmd);
 		clearBuff(cmd);
-		tmp1 = fopen("./result/tmp1", "r");
-		printf("tmp1 formed\n");
+		tmp1 = fopen("./data/tmp1", "r");
+		//printf("tmp1 formed\n");
 		if(!searchName(tmp1, tmp[1])){
 			clearBuff(cmd);
-			printf("could not find date directory, creating it\n");
-			strcat(cmd, "mkdir ./result/");
-			strcat(cmd, tmp[0]);
-			strcat(cmd, "/");
-			strcat(cmd, tmp[1]);
-			printf("formed: %s\n", cmd);
+			printf("could not find date directory, creating ");
+			sprintf(cmd, "mkdir ./data/%s/%s", tmp[0], tmp[1]);
+			printf("./data/%s/%s\n", tmp[0], tmp[1]);
 			system(cmd);
 		}
 		else{
 			printf("date directory found\n");
 		}
 		clearBuff(cmd);
-		printf("moving file\n");
+		//printf("moving file\n");
 		clearBuff(cmd);
-		strcat(cmd, "mv ");
-		strcat(cmd, filename);
-		strcat(cmd, " ./result/");
-		strcat(cmd, tmp[0]);
-		strcat(cmd, "/");
-		strcat(cmd, tmp[1]);
-		strcat(cmd, "/");
-		strcat(cmd, tmp[2]);
-		strcat(cmd, ".txt");
-		printf("formed: %s\n", cmd);
+		sprintf(cmd, "mv ./data/%s ./data/%s/%s/%s.txt", filename, tmp[0], tmp[1], tmp[2]);
+		printf("moving %s from ./data/%s to ./data/%s/%s/%s.txt\n", filename, filename, tmp[0], tmp[1], tmp[2]);
 		system(cmd);
-		printf("--------------------------------------\n");
+		printf("########################################\n");
 		free(tmp[0]);
 		free(tmp[1]);
 		free(tmp[2]);
@@ -342,10 +310,11 @@ void mapFileSystem(){
 		free(tmp[4]);
 		free(tmp);
 		system("rm tmp0");
-		system("rm ./result/tmp1");
+		system("rm ./data/tmp1");
 	}
 	fclose(names);
 	free(filename);
+	free(nfilename);
 	free(prompt);
 	system("rm tmp");
 }
@@ -365,8 +334,9 @@ void formStatFile(){
 }
 
 int main(){
-	//switchDates(7*60*60);
+	switchDates(7*60*60);
 	mapFileSystem();
 	indexData();
-	formStatFile();
+	//formStatFile();
+    indexData();
 }
