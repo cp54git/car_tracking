@@ -12,13 +12,13 @@ GPRS gprs(GPRSSerial);
 
 void setup()
 {
-	Serial.begin(9600); //Serial connection to monitor
+	Serial.begin(9600); 
 	while(!Serial){}
 	Serial.println("SERIAL INIT OK");
 	delay(100);
-	Serial1.begin(115200);//Serial to GPS shield
-	Serial.println("GPS SRIAL INIT OK");
-	GPRSSerial.begin(9600);//Serial to GPRS shield
+	Serial1.begin(115200);
+	Serial.println("GPS SERIAL INIT OK");
+	GPRSSerial.begin(9600);
 	Serial.println("GPRS SERIAL INIT OK");
 	delay(1000);
 	Serial.println("WAITING FOR NETWORK");
@@ -30,7 +30,7 @@ void setup()
 			
 		}
 		else{
-			Serial.println("GPS NOT AVAILBLE");
+			Serial.println("GPS NOT AVAILABLE");
 		}
 	}
 	Serial.println("NETWORK FOUND");
@@ -46,13 +46,13 @@ void setup()
 		delay(1000);
 	}
 	Serial.println("GPRS OK");
-	Serial.print("IP ADDRESS IS");
+	Serial.print("IP ADDRESS IS ");
 	Serial.println(gprs.getIPAddress());
 }
 
 void loop()
 {
-	while (!gprs.connect(TCP, "188.44.53.81", 80)) { //cheking for connection to the server
+	while (!gprs.connect(TCP, "188.44.53.81", 80)) {
 		Serial.println("CONNECT ERROR");
 		delay(1000);
 	}
@@ -76,48 +76,44 @@ void tcpBufferForm(){
 	//strcat(tcpBuffer, "GET /recvdata.php?filename=ard.txt&data=123 HTTP/1.0\r\n\r\n");
 	char buf[100];
 	if (gps.available()) {
-		// getting and parsing data
 		gps.readParsing();
-		// cheking if everything is ok
 		switch(gps.getState()) {
-			// everything is ok
 			case GPS_OK:
 				char lon[16], lat[16], date[16], time[16];
 				gps.getTime(time, MAX_SIZE_MAS);
 				gps.getDate(date, MAX_SIZE_MAS);
 				dtostrf(gps.getLatitudeBase10(), 9, 6, lat);
 				dtostrf(gps.getLongitudeBase10(), 9, 6, lon);
-				sprintf(tcpBuffer, "GET /recvdata.php?filename=%s_%s.txt&data=%s_%s_%s_%s_%s HTTP/1.0\r\n\r\n", date, time, IMEI, date, time, lat, lon);
+				sprintf(tcpBuffer, "%s_%s_%s_%s_%s", IMEI, date, time, lat, lon);
 				Serial.print("FORMED: ");
 				Serial.println(tcpBuffer);
 				Serial.print("PENDING TO SEND... ");
 				break;
-			// data error
+			// ошибка данных
 			case GPS_ERROR_DATA:
 				gprs.getDateTime(buf);
-				sprintf(tcpBuffer, "GET /recvdata.php?filename=%s_err.txt&data=ERROR_DATA_%s_%s HTTP/1.0\r\n\r\n", buf, buf, IMEI);
+				sprintf(tcpBuffer, "ERROR_DATA_%s_%s", buf, IMEI);
 				Serial.println("SENDING GPS_ERROR_DATA");
-				Serial.print("formed: ");
+				Serial.print("FORMED: ");
 				Serial.println(tcpBuffer);
 				Serial.print("PENDING TO SEND... ");
 				break;
-			// no connection to sattelites
+			// нет соединения со спутниками
 			case GPS_ERROR_SAT:
 				gprs.getDateTime(buf);
-				sprintf(tcpBuffer, "GET /recvdata.php?filename=%s_err.txt&data=ERROR_SAT_%s_%s HTTP/1.0\r\n\r\n", buf, buf, IMEI);
+				sprintf(tcpBuffer, "ERROR_SAT_%s_%s", buf, IMEI);
 				Serial.println("SENDING GPS_ERROR_SAT");
 				Serial.print("FORMED: ");
 				Serial.println(tcpBuffer);
-				Serial.print("PENDING TO SEND");
+				Serial.print("PENDING TO SEND... ");
 				break;
 		}
 	}
 }
 
-void clearTcpBuffer()//clearing the buffer
+void clearTcpBuffer()
 {
 	for (int t = 0; t < LEN; t++) {
 		tcpBuffer[t] = 0;
 	}
 }
-
